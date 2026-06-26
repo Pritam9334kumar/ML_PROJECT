@@ -1,20 +1,30 @@
 import os
 import sys
 from dataclasses import dataclass
-from catboost import CatBoostClassifier, CatBoostRegressor
+from urllib.parse import urlparse
+
+import dagshub
+import mlflow
+import mlflow.sklearn
 import numpy as np
 
-from sklearn.ensemble import(
-    AdaBoostRegressor,
-    GradientBoostingRegressor,
+from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
+
+from sklearn.ensemble import (
     RandomForestRegressor,
+    GradientBoostingRegressor,
+    AdaBoostRegressor,
 )
 
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+from sklearn.metrics import (
+    r2_score,
+    mean_squared_error,
+    mean_absolute_error,
+)
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
-from xgboost import XGBRegressor
 
 from src.ml_project.exception import CustomException
 from src.ml_project.logger import logging
@@ -29,6 +39,15 @@ class ModelTrainerConfig:
 class ModelTrainer:
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
+
+    from sklearn.metrics import mean_squared_error, mean_absolute_error
+    import numpy as np
+
+    def eval_metrics(self, actual, pred):
+        rmse = np.sqrt(mean_squared_error(actual, pred))
+        mae = mean_absolute_error(actual, pred)
+        r2 = r2_score(actual, pred)
+        return rmse, mae, r2
 
     def initiate_model_trainer(self, train_array, test_array):
         try:
@@ -110,10 +129,60 @@ class ModelTrainer:
                 list(model_report.values()).index(best_model_score)]
             
             best_model = models[best_model_name]
+            print("This is the best Model:")
+            print(best_model_name)
+
+            
+            
+            dagshub.init(
+                 repo_owner="Pritam9334kumar",
+                 repo_name="ML_PROJECT",
+                 mlflow=True
+            )
+
+            actual_model = best_model_name
+            best_params = params.get(best_model_name, {})
+            best_model.fit(X_train, y_train)
+
+            mlflow.set_tracking_uri("https://dagshub.com/Pritam9334kumar/ML_PROJECT.mlflow")
+            tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+            
+            #  mlflow
+
+            with mlflow.start_run():
+                predicted_qualities = best_model.predict(X_test)
+                (rmse, mae, r2) = self.eval_metrics(y_test, predicted_qualities)
+
+                mlflow.log_param("best_model", best_model_name)
+                mlflow.log_params(best_params)
+
+                mlflow.log_metric("rmse", rmse)
+                mlflow.log_metric("r2", r2)
+                mlflow.log_metric("mae", mae)
+
+
+
+            if tracking_url_type_store != "file":
+                mlflow.sklearn.log_model(
+                    sk_model=best_model, 
+                    name="model",
+                    registered_model_name=best_model_name,
+                    skops_trusted_types=["catboost.core.CatBoostRegressor"]
+                )
+
+            else:
+                mlflow.sklearn.log_model(
+                    best_model, 
+                    name="model"
+                )
+
+
 
             if best_model_score < 0.6:
                 raise CustomException("No best model found", sys)
             logging.info(f"Best found model on the both training and testing dataset is { best_model_name}")
+
+            
 
             save_object(
                 file_path = self.model_trainer_config.trained_model_file_path,
