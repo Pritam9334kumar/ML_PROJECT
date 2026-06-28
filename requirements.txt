@@ -1,6 +1,7 @@
 numpy 
 pandas
 python-dotenv
+setuptools
 mysql-connector-python
 pymysql
 scikit-learn
@@ -11,5 +12,6 @@ Flask
 gunicorn
 dill
 mlflow==2.2.2
+wheel
 
 -e .
