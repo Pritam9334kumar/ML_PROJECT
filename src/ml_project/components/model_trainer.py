@@ -3,10 +3,18 @@ import sys
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-import dagshub
-import mlflow
-import mlflow.sklearn
 import numpy as np
+
+try:
+    import dagshub
+except ImportError:
+    dagshub = None
+
+try:
+    import mlflow
+    import mlflow.sklearn
+except ImportError:
+    mlflow = None
 
 from catboost import CatBoostRegressor
 from xgboost import XGBRegressor
@@ -134,47 +142,44 @@ class ModelTrainer:
 
             
             
-            dagshub.init(
-                 repo_owner="Pritam9334kumar",
-                 repo_name="ML_PROJECT",
-                 mlflow=True
-            )
-
             actual_model = best_model_name
             best_params = params.get(best_model_name, {})
             best_model.fit(X_train, y_train)
 
-            mlflow.set_tracking_uri("https://dagshub.com/Pritam9334kumar/ML_PROJECT.mlflow")
-            tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-            
-            #  mlflow
-
-            with mlflow.start_run():
-                predicted_qualities = best_model.predict(X_test)
-                (rmse, mae, r2) = self.eval_metrics(y_test, predicted_qualities)
-
-                mlflow.log_param("best_model", best_model_name)
-                mlflow.log_params(best_params)
-
-                mlflow.log_metric("rmse", rmse)
-                mlflow.log_metric("r2", r2)
-                mlflow.log_metric("mae", mae)
-
-
-
-            if tracking_url_type_store != "file":
-                mlflow.sklearn.log_model(
-                    sk_model=best_model, 
-                    name="model",
-                    registered_model_name=best_model_name,
-                    skops_trusted_types=["catboost.core.CatBoostRegressor"]
+            if dagshub is not None and mlflow is not None:
+                dagshub.init(
+                    repo_owner="Pritam9334kumar",
+                    repo_name="ML_PROJECT",
+                    mlflow=True
                 )
 
-            else:
-                mlflow.sklearn.log_model(
-                    best_model, 
-                    name="model"
-                )
+                mlflow.set_tracking_uri("https://dagshub.com/Pritam9334kumar/ML_PROJECT.mlflow")
+                tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+
+                with mlflow.start_run():
+                    predicted_qualities = best_model.predict(X_test)
+                    (rmse, mae, r2) = self.eval_metrics(y_test, predicted_qualities)
+
+                    mlflow.log_param("best_model", best_model_name)
+                    mlflow.log_params(best_params)
+
+                    mlflow.log_metric("rmse", rmse)
+                    mlflow.log_metric("r2", r2)
+                    mlflow.log_metric("mae", mae)
+
+                if tracking_url_type_store != "file":
+                    mlflow.sklearn.log_model(
+                        sk_model=best_model,
+                        name="model",
+                        registered_model_name=best_model_name,
+                        skops_trusted_types=["catboost.core.CatBoostRegressor"]
+                    )
+
+                else:
+                    mlflow.sklearn.log_model(
+                        best_model,
+                        name="model"
+                    )
 
 
 
