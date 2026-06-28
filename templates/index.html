@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Performance Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="eyebrow">End-to-end ML project</p>
+          <h1>Predict a student’s math score.</h1>
+          <p class="subtitle">
+            Enter the student profile and assessment details below. The app uses the saved preprocessing pipeline and trained model to estimate the math score.
+          </p>
+        </div>
+
+        <div class="result-panel">
+          <span class="result-label">Prediction</span>
+          <div class="result-value">
+            {% if results is defined %}
+              {{ results }}
+            {% else %}
+              --
+            {% endif %}
+          </div>
+          <p class="result-note">Expected score out of 100</p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <form action="/predict" method="POST" class="prediction-form">
+          <div class="grid">
+            <label>
+              <span>Gender</span>
+              <select name="gender" required>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Race / Ethnicity</span>
+              <select name="race_ethnicity" required>
+                <option value="group A">Group A</option>
+                <option value="group B">Group B</option>
+                <option value="group C">Group C</option>
+                <option value="group D">Group D</option>
+                <option value="group E">Group E</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Parent education</span>
+              <select name="parental_level_of_education" required>
+                <option value="some high school">Some high school</option>
+                <option value="high school">High school</option>
+                <option value="some college">Some college</option>
+                <option value="associate's degree">Associate's degree</option>
+                <option value="bachelor's degree">Bachelor's degree</option>
+                <option value="master's degree">Master's degree</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Lunch type</span>
+              <select name="lunch" required>
+                <option value="standard">Standard</option>
+                <option value="free/reduced">Free / reduced</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Test preparation</span>
+              <select name="test_preparation_course" required>
+                <option value="none">None</option>
+                <option value="completed">Completed</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Reading score</span>
+              <input type="number" name="reading_score" min="0" max="100" step="1" value="60" required />
+            </label>
+
+            <label>
+              <span>Writing score</span>
+              <input type="number" name="writing_score" min="0" max="100" step="1" value="60" required />
+            </label>
+          </div>
+
+          <button type="submit">Predict score</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

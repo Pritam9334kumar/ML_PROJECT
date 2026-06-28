@@ -3,7 +3,6 @@ import sys
 from src.ml_project.exception import CustomException
 from src.ml_project.logger import logging
 import pandas as pd
-from src.ml_project.utils import read_sql_data
 from sklearn.model_selection import train_test_split
 
 from dataclasses import dataclass
@@ -20,14 +19,18 @@ class DataIngestion:
 
     def initiate_data_ingestion(self):
         try:
-            # Reading data from mysql database and saving it in artifacts folder.
-            df=pd.read_csv(os.path.join('notebook/data', 'raw.csv'))
-            logging.info("Reading from myswl Database")
-            os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok = True)
-            df.to_csv(self.ingestion_config.raw_data_path,index=False,header=True)
-            train_set,test_set = train_test_split(df, test_size=0.2, random_state= 42)
-            train_set.to_csv(self.ingestion_config.train_data_path, index= False, header =True)
-            test_set.to_csv(self.ingestion_config.test_data_path, index= False, header =True)
+            source_data_path = os.path.join("notebook", "Data", "raw.csv")
+            if not os.path.exists(source_data_path):
+                source_data_path = self.ingestion_config.raw_data_path
+
+            df = pd.read_csv(source_data_path)
+            logging.info("Reading source data completed")
+
+            os.makedirs(os.path.dirname(self.ingestion_config.train_data_path), exist_ok=True)
+            df.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
+            train_set, test_set = train_test_split(df, test_size=0.2, random_state=42)
+            train_set.to_csv(self.ingestion_config.train_data_path, index=False, header=True)
+            test_set.to_csv(self.ingestion_config.test_data_path, index=False, header=True)
 
             logging.info("Ingestion of data is completed")
 

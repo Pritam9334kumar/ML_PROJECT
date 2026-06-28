@@ -1,34 +1,46 @@
-from src.ml_project.logger import logging
-from src.ml_project.exception import CustomException
-from src.ml_project.components.data_ingestion import DataIngestion
-from src.ml_project.components.data_transformation import DataTransformation
-from src.ml_project.components.model_trainer import ModelTrainer
-
+import os
 import sys
 
-if __name__ == "__main__":
-    logging.info("Starting the application")
+from flask import Flask, render_template, request
 
+from src.ml_project.exception import CustomException
+from src.ml_project.logger import logging
+from src.ml_project.pipeline.prediction_pipeline import CustomData, PredictPipeline
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/predict", methods=["POST"])
+def predict_datapoint():
     try:
-
-        # Data Ingestion
-        data_ingestion = DataIngestion()
-        train_data_path, test_data_path = data_ingestion.initiate_data_ingestion()
-
-        # Data Transformation
-        data_transformation = DataTransformation()
-
-        train_array, test_array, _ = (
-            data_transformation.initiate_data_transformation(
-                train_data_path,
-                test_data_path
-            )
+        data = CustomData(
+            gender=request.form.get("gender"),
+            race_ethnicity=request.form.get("race_ethnicity"),
+            parental_level_of_education=request.form.get("parental_level_of_education"),
+            lunch=request.form.get("lunch"),
+            test_preparation_course=request.form.get("test_preparation_course"),
+            reading_score=float(request.form.get("reading_score")),
+            writing_score=float(request.form.get("writing_score")),
         )
 
-        # Model Training
-        model_trainer = ModelTrainer()
-        print(model_trainer.initiate_model_trainer(train_array, test_array))
+        predict_pipeline = PredictPipeline()
+        pred = predict_pipeline.predict(data.get_data_as_data_frame())
+        result = round(float(pred[0]), 2)
+
+        return render_template("index.html", results=result)
 
     except Exception as e:
-        logging.info("Exception occurred")
+        logging.info("Exception occurred during prediction")
         raise CustomException(e, sys)
+
+
+if __name__ == "__main__":
+    logging.info("Starting the Flask application")
+    port = int(os.environ.get("PORT", 5000))
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)
